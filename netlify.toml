@@ -1,0 +1,34 @@
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Chapa Webhook endpoint
+[[redirects]]
+  from = "/api/chapa-webhook"
+  to = "/.netlify/functions/chapa-webhook"
+  status = 200
+
+# Handle SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Set security headers
+[[headers]]
+  for = "/*"
+    [headers.values]
+      X-Frame-Options = "DENY"
+      X-XSS-Protection = "1; mode=block"
+      X-Content-Type-Options = "nosniff"
+      Referrer-Policy = "strict-origin-when-cross-origin"
+      Content-Security-Policy = "default-src 'self'; connect-src 'self' https://*.supabase.co https://*.chapa.co https://*.stripe.com; img-src 'self' data: https://*.supabase.co https://* blob:; script-src 'self' 'unsafe-inline' https://*.stripe.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+
+[dev]
+  command = "npm run dev"
+  port = 8000
+  targetPort = 8080
