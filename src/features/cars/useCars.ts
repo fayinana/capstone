@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Car } from "@/types";
@@ -7,7 +8,7 @@ import { useErrorHandler } from "@/hooks/useErrorHandler";
 // Helper function to transform DB car to frontend Car type
 const mapDbCarToFrontend = (dbCar: any): Car => {
   if (!dbCar) return {} as Car;
-
+  
   // Ensure transmission is a valid value
   const transmission =
     dbCar.transmission === "automatic" || dbCar.transmission === "manual"
@@ -16,27 +17,23 @@ const mapDbCarToFrontend = (dbCar: any): Car => {
 
   return {
     id: dbCar.id,
-    brand: dbCar.brand || "",
-    model: dbCar.model || "",
-    description: dbCar.description || "",
+    brand: dbCar.brand || '',
+    model: dbCar.model || '',
+    description: dbCar.description || '',
     price: dbCar.price || 0,
-    location: dbCar.location || "",
+    location: dbCar.location || '',
     year: dbCar.year || new Date().getFullYear(),
-    fuel_type:
-      (dbCar.fuel_type as "petrol" | "diesel" | "electric" | "hybrid") ||
-      "petrol",
-    fuelType:
-      (dbCar.fuel_type as "petrol" | "diesel" | "electric" | "hybrid") ||
-      "petrol",
+    fuel_type: dbCar.fuel_type as "petrol" | "diesel" | "electric" | "hybrid" || "petrol",
+    fuelType: dbCar.fuel_type as "petrol" | "diesel" | "electric" | "hybrid" || "petrol",
     transmission: transmission,
     seats: dbCar.seats || 4,
-    image: dbCar.image || "",
+    image: dbCar.image || '',
     images: dbCar.images || [dbCar.image] || [],
     features: dbCar.features || [],
     rating: dbCar.rating || 4.5,
     reviewCount: dbCar.review_count || 10,
     review_count: dbCar.review_count || 10,
-    title: dbCar.title || `${dbCar.brand || ""} ${dbCar.model || ""}`,
+    title: dbCar.title || `${dbCar.brand || ''} ${dbCar.model || ''}`,
     owner_id: dbCar.owner_id,
     created_at: dbCar.created_at,
     updated_at: dbCar.updated_at,
@@ -76,7 +73,7 @@ export const fetchCarById = async (id: string): Promise<Car> => {
       .single();
 
     if (error) {
-      if (error.code === "PGRST116") {
+      if (error.code === 'PGRST116') {
         throw new NotFoundError(`Car with ID ${id} not found`);
       }
       throw error;
@@ -103,7 +100,7 @@ const useCars = (options: any = {}) => {
     onError: (error) => {
       handleApiError(error, {
         fallbackMessage: "Failed to load cars. Please try again later.",
-        showToast: true,
+        showToast: true
       });
     },
     ...options,

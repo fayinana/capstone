@@ -1,10 +1,11 @@
+
 import { useMutation } from "@tanstack/react-query";
 import { updateUserProfile } from "@/api/user";
 import { useToast } from "@/hooks/use-toast";
 
 export default function useUpdateProfile() {
   const { toast } = useToast();
-
+  
   return useMutation({
     mutationFn: ({ userId, profile }: { userId: string; profile: any }) =>
       updateUserProfile(userId, profile),
