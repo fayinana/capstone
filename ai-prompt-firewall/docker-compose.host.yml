@@ -1,0 +1,26 @@
+# Optional override when Docker bridge blocks container-to-container traffic.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.host.yml up --build
+services:
+  postgres:
+    network_mode: host
+    ports: !reset []
+    command: ["postgres", "-p", "5433", "-c", "listen_addresses=*"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5433 -U ${POSTGRES_USER:-firewall} -d ${POSTGRES_DB:-firewall}"]
+
+  proxy:
+    network_mode: host
+    ports: !reset []
+    environment:
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5433"
+      PROXY_PORT: "8080"
+
+  dashboard:
+    network_mode: host
+    ports: !reset []
+    environment:
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5433"
+      FIREWALL_ADMIN_URL: http://127.0.0.1:8080

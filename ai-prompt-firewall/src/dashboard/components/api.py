@@ -14,9 +14,11 @@ def check_login() -> bool:
         return True
     st.markdown("### Analyst sign-in")
     st.caption("Local console only. Credentials never leave this deployment.")
-    user = st.text_input("Username")
-    pw = st.text_input("Password", type="password")
-    if st.button("Enter console", type="primary"):
+    with st.form("analyst_login", clear_on_submit=False):
+        user = st.text_input("Username", key="login_user")
+        pw = st.text_input("Password", type="password", key="login_password")
+        submitted = st.form_submit_button("Enter console", type="primary")
+    if submitted:
         expected_user = os.getenv("ADMIN_USERNAME", "analyst")
         expected_pw = os.getenv("ADMIN_PASSWORD", "change-me")
         if user == expected_user and pw == expected_pw:

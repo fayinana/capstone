@@ -14,6 +14,8 @@ services:
       retries: 20
     ports:
       - "5433:5432"
+    # Bridge networking is the default. If container-to-container TCP is broken
+    # on the host (rare), use: docker compose -f docker-compose.yml -f docker-compose.host.yml up --build
 
   proxy:
     build: .
@@ -25,14 +27,15 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
+      POSTGRES_CONNECT_TIMEOUT: "3"
     ports:
       - "${PROXY_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"]
       interval: 3s
       timeout: 3s
-      start_period: 2s
-      retries: 15
+      start_period: 5s
+      retries: 20
 
   dashboard:
     build: .

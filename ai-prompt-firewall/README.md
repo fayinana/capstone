@@ -20,7 +20,13 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The proxy should report healthy in a few seconds (`GET /health`).
+If Docker bridge networking on your host cannot route container-to-container traffic, use the host-network override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.host.yml up --build
+```
+
+The proxy should report healthy in a few seconds (`GET /health`). Startup does **not** download model weights — `src/models/classifier.onnx` is already in the image.
 
 | Service | URL |
 | --- | --- |

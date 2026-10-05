@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY config /app/config
 COPY src /app/src
 COPY scripts /app/scripts
+COPY .streamlit /app/.streamlit
 
 # ONNX is copied from the repo (already on disk). Startup never downloads weights.
 EXPOSE 8080 8501

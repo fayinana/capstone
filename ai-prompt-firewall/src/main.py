@@ -85,22 +85,40 @@ def build_pipeline(settings: dict[str, Any]) -> DefensePipeline:
     return DefensePipeline(state.layer1, layer2, Layer3Evaluator(), scanner, settings, max_turns)
 
 
-def apply_settings(settings: dict[str, Any]) -> None:
-    state.settings = settings
+def _cfg_int(data: dict[str, Any], key: str, default: int) -> int:
+    value = data.get(key, default)
+    if value is None:
+        return default
+    return int(value)
+
+
+def _cfg_float(data: dict[str, Any], key: str, default: float) -> float:
+    value = data.get(key, default)
+    if value is None:
+        return default
+    return float(value)
+
+
+def _apply_rate_limit(settings: dict[str, Any]) -> None:
     rl = settings.get("rate_limit") or {}
-    if not hasattr(state, "limiter") or state.limiter is None:
+    if not hasattr(state, "limiter") or getattr(state, "limiter", None) is None:
         state.limiter = RateLimiter()
     state.limiter.configure(
         enabled=bool(rl.get("enabled", True)),
-        requests_per_window=int(rl.get("requests_per_window") or 60),
-        window_seconds=int(rl.get("window_seconds") or 60),
-        burst_size=int(rl.get("burst_size") or 20),
-        cooldown_seconds=int(rl.get("cooldown_seconds") or 120),
-        temp_block_seconds=int(rl.get("temp_block_seconds") or 300),
-        anomaly_spike_multiplier=float(rl.get("anomaly_spike_multiplier") or 4.0),
-        anomaly_block_streak=int(rl.get("anomaly_block_streak") or 8),
-        anomaly_distinct_patterns=int(rl.get("anomaly_distinct_patterns") or 4),
+        requests_per_window=_cfg_int(rl, "requests_per_window", 60),
+        window_seconds=_cfg_int(rl, "window_seconds", 60),
+        burst_size=_cfg_int(rl, "burst_size", 20),
+        cooldown_seconds=_cfg_int(rl, "cooldown_seconds", 120),
+        temp_block_seconds=_cfg_int(rl, "temp_block_seconds", 300),
+        anomaly_spike_multiplier=_cfg_float(rl, "anomaly_spike_multiplier", 4.0),
+        anomaly_block_streak=_cfg_int(rl, "anomaly_block_streak", 8),
+        anomaly_distinct_patterns=_cfg_int(rl, "anomaly_distinct_patterns", 4),
     )
+
+
+def apply_settings(settings: dict[str, Any]) -> None:
+    state.settings = settings
+    _apply_rate_limit(settings)
     if hasattr(state, "pipeline") and state.pipeline:
         state.pipeline.settings = settings
         state.pipeline.output_scanner.policy = str((settings.get("output_scanner") or {}).get("policy") or "redact")
@@ -139,18 +157,40 @@ async def _bg_jobs() -> None:
             log.warning("settings refresh: %s", exc)
 
 
+async def _ensure_db() -> None:
+    """Best-effort DB bootstrap; never block proxy readiness for long."""
+    for attempt in range(1, 4):
+        try:
+            init_pool()
+            storage.init_schema()
+            log.info("database schema ready")
+            return
+        except Exception as exc:  # noqa: BLE001
+            log.warning("database not ready (attempt %s): %s", attempt, exc)
+            close_pool()
+            await asyncio.sleep(1)
+    log.warning("continuing without database; telemetry will retry asynchronously")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_pool()
     try:
-        storage.init_schema()
+        await asyncio.wait_for(_ensure_db(), timeout=12)
     except Exception as exc:  # noqa: BLE001
-        log.warning("schema init deferred: %s", exc)
-    settings = _merge_runtime()
+        log.warning("database bootstrap skipped: %s", exc)
+    try:
+        settings = _merge_runtime()
+    except Exception:
+        settings = load_base_config()
     state.forwarder = DownstreamForwarder(timeout=float((settings.get("proxy") or {}).get("request_timeout_seconds") or 60))
     state.pipeline = build_pipeline(settings)
     state.log_queue = asyncio.Queue(maxsize=int((settings.get("logging") or {}).get("async_buffer_size") or 1000))
-    apply_settings(settings)
+    try:
+        apply_settings(settings)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("settings apply deferred: %s", exc)
+        state.settings = settings
+        state.limiter = RateLimiter()
     worker = asyncio.create_task(_logger_worker())
     jobs = asyncio.create_task(_bg_jobs())
     log.info("firewall proxy ready (mock_downstream=%s)", state.forwarder.is_mock())
@@ -188,6 +228,11 @@ def ready() -> dict[str, Any]:
         "status": "ready",
         "mock_downstream": state.forwarder.is_mock(),
         "layer2_loaded": True,
+        "rate_limit": {
+            "enabled": getattr(state.limiter, "enabled", None),
+            "requests_per_window": getattr(state.limiter, "requests_per_window", None),
+            "burst_size": getattr(state.limiter, "burst_size", None),
+        },
     }
 
 
@@ -213,6 +258,7 @@ async def chat_completions(
     prompt, system_instruction, messages = extract_prompt_bundle(body)
     model = str(body.get("model") or "unknown")
 
+    _apply_rate_limit(state.settings)
     pre = state.limiter.check(client_ip, application_id)
     if pre.action != "ALLOW":
         latency = (time.perf_counter() - t0) * 1000

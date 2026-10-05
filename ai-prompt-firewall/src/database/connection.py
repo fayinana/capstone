@@ -11,12 +11,14 @@ _pool: SimpleConnectionPool | None = None
 
 
 def dsn() -> str:
+    timeout = os.getenv("POSTGRES_CONNECT_TIMEOUT", "3")
     return (
         f"host={os.getenv('POSTGRES_HOST', 'localhost')} "
         f"port={os.getenv('POSTGRES_PORT', '5432')} "
         f"dbname={os.getenv('POSTGRES_DB', 'firewall')} "
         f"user={os.getenv('POSTGRES_USER', 'firewall')} "
-        f"password={os.getenv('POSTGRES_PASSWORD', 'change-me-db')}"
+        f"password={os.getenv('POSTGRES_PASSWORD', 'change-me-db')} "
+        f"connect_timeout={timeout}"
     )
 
 
