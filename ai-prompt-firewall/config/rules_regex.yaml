@@ -1,0 +1,35 @@
+rules:
+  - id: RX-JAILBREAK-IGNORE
+    category: jailbreak
+    description: Classic instruction-override jailbreak
+    pattern: "(?i)\\b(ignore|disregard|forget)\\b.{0,40}\\b(previous|prior|above|system)\\b.{0,20}\\b(instructions?|prompts?|rules?)\\b"
+
+  - id: RX-JAILBREAK-DAN
+    category: jailbreak
+    description: DAN / developer-mode persona jailbreak
+    pattern: "(?i)\\b(do anything now|\\bDAN\\b|developer\\s*mode|jailbreak\\s*(the)?\\s*model)\\b"
+
+  - id: RX-JAILBREAK-OVERRIDE
+    category: jailbreak
+    description: Explicit policy override language
+    pattern: "(?i)\\b(override|bypass|disable)\\b.{0,30}\\b(safety|guardrail|filter|content\\s*policy|moderation)\\b"
+
+  - id: RX-ROLE-UNRESTRICTED
+    category: jailbreak
+    description: Unrestricted / uncensored model role-play
+    pattern: "(?i)\\b(unrestricted|uncensored|unfiltered)\\b.{0,20}\\b(mode|model|ai|assistant)\\b"
+
+  - id: RX-SYSTEM-LEAK
+    category: system_exfil
+    description: Attempts to extract the system prompt
+    pattern: "(?i)\\b(repeat|reveal|print|show|dump)\\b.{0,40}\\b(system\\s*(prompt|message|instructions?)|hidden\\s*instructions?)\\b"
+
+  - id: RX-ENCODED-B64
+    category: obfuscation
+    description: Base64-wrapped instruction payload
+    pattern: "(?i)(base64|decode this)\\s*[:=]?\\s*[A-Za-z0-9+/]{40,}={0,2}"
+
+  - id: RX-TEMPLATE-INJECTION
+    category: indirect_injection
+    description: Template / XML instruction smuggling
+    pattern: "(?i)<\\s*(system|instruction|secret)\\s*>.{0,200}<\\s*/\\s*(system|instruction|secret)\\s*>"
