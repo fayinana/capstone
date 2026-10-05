@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-prompt-firewall.fullname" . }}-proxy
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "ai-prompt-firewall.fullname" . }}-proxy
+  template:
+    metadata:
+      labels:
+        app: {{ include "ai-prompt-firewall.fullname" . }}-proxy
+    spec:
+      containers:
+        - name: proxy
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TARGET_BASE_URL
+              value: {{ .Values.env.TARGET_BASE_URL | quote }}
+            - name: POSTGRES_HOST
+              value: {{ include "ai-prompt-firewall.fullname" . }}-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-prompt-firewall.fullname" . }}-proxy
+spec:
+  selector:
+    app: {{ include "ai-prompt-firewall.fullname" . }}-proxy
+  ports:
+    - port: {{ .Values.service.proxyPort }}
+      targetPort: 8080

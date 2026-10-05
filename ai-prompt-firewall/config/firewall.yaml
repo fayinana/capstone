@@ -1,0 +1,56 @@
+proxy:
+  host: "0.0.0.0"
+  port: 8080
+  request_timeout_seconds: 60
+  max_conversation_turns: 8
+
+pipeline:
+  layer_1_enabled: true
+  layer_2_enabled: true
+  layer_3_enabled: true
+  output_scanner_enabled: true
+  output_scanner_disable_requires_audit: true
+
+layer_2:
+  low_threshold: 0.28
+  high_threshold: 0.72
+  model_path: "src/models/classifier.onnx"
+  tokenizer_path: "src/models/tokenizer"
+
+layer_3:
+  redact_injection_phrases: true
+
+output_scanner:
+  policy: redact   # block | redact | warn
+  redact_placeholder: "[REDACTED]"
+
+rate_limit:
+  enabled: true
+  requests_per_window: 60
+  window_seconds: 60
+  burst_size: 20
+  cooldown_seconds: 120
+  temp_block_seconds: 300
+  anomaly_spike_multiplier: 4.0
+  anomaly_block_streak: 8
+  anomaly_distinct_patterns: 4
+
+suggestions:
+  enabled: true
+  interval_seconds: 30
+  window_hours: 24
+  min_count: 3
+  never_auto_enforce: true
+
+siem:
+  enabled: false
+  destination: webhook   # webhook | syslog
+  webhook_url: ""
+  syslog_host: ""
+  syslog_port: 514
+  include_raw_prompt: false
+  timeout_seconds: 3
+
+logging:
+  async_buffer_size: 1000
+  retry_seconds: 2

@@ -1,0 +1,15 @@
+replicaCount: 1
+image:
+  repository: ai-prompt-firewall
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+service:
+  proxyPort: 8080
+  dashboardPort: 8501
+postgres:
+  enabled: true
+  database: firewall
+  user: firewall
+env:
+  TARGET_BASE_URL: ""
+  ADMIN_USERNAME: analyst
